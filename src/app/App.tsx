@@ -2,7 +2,8 @@ import { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Toaster } from 'sonner';
 import { WifiOff, FileText, Settings, BarChart3 } from 'lucide-react';
-import { Sidebar, Page } from './components/Sidebar';
+import { Page } from './components/Sidebar';
+import { AppShell } from './components/AppShell';
 import { Dashboard } from './components/Dashboard';
 import { POSView } from './components/POSView';
 import { UtangCRM } from './components/UtangCRM';
@@ -16,7 +17,7 @@ const MUTED = '#94A3B8';
 
 function ReportsPage() {
   return (
-    <div className="h-full flex flex-col items-center justify-center gap-5 p-8" style={{ background: BG }}>
+    <div className="h-full flex flex-col items-center justify-center gap-5 p-4 sm:p-8 overflow-y-auto" style={{ background: BG }}>
       <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: CARD, border: '1px solid rgba(255,255,255,0.05)' }}>
         <FileText size={36} color={MUTED} />
       </div>
@@ -26,7 +27,7 @@ function ReportsPage() {
           I-download ang monthly reports, tax documents, at sales summaries para sa inyong negosyo.
         </p>
       </div>
-      <div className="grid grid-cols-2 gap-3 w-full max-w-md mt-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full max-w-md mt-2">
         {['Monthly Sales Report', 'Utang Ledger Export', 'Inventory Snapshot', 'BIR Summary'].map(r => (
           <button
             key={r}
@@ -47,7 +48,7 @@ function ReportsPage() {
 
 function SettingsPage() {
   return (
-    <div className="h-full flex flex-col p-8 gap-5 overflow-y-auto" style={{ background: BG, scrollbarWidth: 'thin', scrollbarColor: '#222 transparent' }}>
+    <div className="h-full flex flex-col p-4 sm:p-8 gap-5 overflow-y-auto" style={{ background: BG, scrollbarWidth: 'thin', scrollbarColor: '#222 transparent' }}>
       <div>
         <h2 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Settings</h2>
         <p style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>I-configure ang iyong AlmaSale account at store preferences.</p>
@@ -95,7 +96,7 @@ export default function App() {
   const showSidebar = page !== 'pos';
 
   return (
-    <div className="flex h-screen overflow-hidden" style={{ background: BG }}>
+    <div className="h-screen w-full overflow-hidden" style={{ background: BG }}>
       <Toaster
         position="top-center"
         toastOptions={{
@@ -119,11 +120,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      {showSidebar && (
-        <Sidebar currentPage={page} onNavigate={setPage} isOnline={isOnline} />
-      )}
-
-      <main className="flex-1 min-w-0 overflow-hidden">
+      <AppShell page={page} onNavigate={setPage} isOnline={isOnline} showSidebar={showSidebar}>
         <AnimatePresence mode="wait">
           <motion.div
             key={page}
@@ -142,7 +139,7 @@ export default function App() {
             {page === 'settings' && <SettingsPage />}
           </motion.div>
         </AnimatePresence>
-      </main>
+      </AppShell>
     </div>
   );
 }

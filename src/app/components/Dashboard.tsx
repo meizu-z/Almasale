@@ -97,7 +97,7 @@ function AtRiskCard() {
   const animOverdue = useCountUp(overdue);
 
   return (
-    <div className="rounded-3xl p-6 flex flex-col h-full" style={{
+    <div className="rounded-3xl p-6 flex flex-col h-full overflow-hidden" style={{
       ...card,
       boxShadow: '0 8px 40px rgba(0,0,0,0.55), 0 0 0 1px rgba(191,4,4,0.12), 0 0 80px rgba(191,4,4,0.04)',
     }}>
@@ -141,7 +141,7 @@ function AtRiskCard() {
 function DebtAgingChart() {
   const total = DEBT_AGING.reduce((s, d) => s + d.amount, 0);
   return (
-    <div className="rounded-3xl p-6 flex flex-col h-full" style={card}>
+    <div className="rounded-3xl p-6 flex flex-col h-full min-h-[300px] lg:min-h-0" style={card}>
       <div className="flex items-center justify-between mb-4 shrink-0">
         <span style={{ color: TEXT, fontWeight: 700, fontSize: 13 }}>Debt Aging Buckets</span>
         <span className="px-2.5 py-1 rounded-full" style={{ background: INNER, color: MUTED, fontSize: 11 }}>
@@ -184,7 +184,7 @@ function DebtAgingChart() {
 /* ─── Recent Sales ─── */
 function RecentSales() {
   return (
-    <div className="rounded-3xl p-6 flex flex-col h-full" style={card}>
+    <div className="rounded-3xl p-6 flex flex-col h-full min-h-[320px] lg:min-h-0" style={card}>
       <div className="flex items-center justify-between mb-4 shrink-0">
         <div className="flex items-center gap-2">
           <Clock size={14} color={MUTED} />
@@ -225,7 +225,7 @@ function RecentSales() {
 function TopDebtors() {
   const sorted = [...CUSTOMERS].sort((a, b) => b.balance - a.balance).slice(0, 8);
   return (
-    <div className="rounded-3xl p-6 flex flex-col h-full" style={card}>
+    <div className="rounded-3xl p-6 flex flex-col h-full min-h-[320px] lg:min-h-0" style={card}>
       <div className="flex items-center justify-between mb-4 shrink-0">
         <span style={{ color: TEXT, fontWeight: 700, fontSize: 13 }}>Top Debtors</span>
         <span style={{ color: MUTED, fontSize: 11 }}>{sorted.length} accounts</span>
@@ -270,7 +270,7 @@ export function Dashboard() {
   ];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-5 gap-3.5" style={{ background: BG }}>
+    <div className="h-full flex flex-col overflow-y-auto lg:overflow-hidden p-4 sm:p-5 gap-3.5" style={{ background: BG }}>
       {/* Header */}
       <div className="flex items-center justify-between shrink-0">
         <div>
@@ -292,7 +292,7 @@ export function Dashboard() {
       </div>
 
       {/* Metrics Row */}
-      <div className="grid grid-cols-5 gap-3 shrink-0">
+      <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 gap-3 shrink-0">
         {metrics.map((m, i) => (
           <motion.div key={m.label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}>
             <MetricCard {...m} />
@@ -300,16 +300,16 @@ export function Dashboard() {
         ))}
       </div>
 
-      {/* Middle + Bottom — share remaining space */}
-      <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateRows: '1fr 1.15fr', gap: 14 }}>
+      {/* Middle + Bottom — stacks on mobile, shares remaining space on desktop */}
+      <div className="flex flex-col gap-3.5 lg:grid lg:flex-1 lg:min-h-0 lg:[grid-template-rows:minmax(0,1fr)_minmax(0,1.15fr)]">
         {/* Row 2: At-Risk + Debt Aging */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.6fr', gap: 14, minHeight: 0 }}>
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.6fr)] lg:min-h-0 lg:overflow-hidden">
           <AtRiskCard />
           <DebtAgingChart />
         </div>
 
         {/* Row 3: Recent Sales + Top Debtors */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, minHeight: 0 }}>
+        <div className="grid grid-cols-1 gap-3.5 lg:grid-cols-2 lg:min-h-0 lg:overflow-hidden">
           <RecentSales />
           <TopDebtors />
         </div>

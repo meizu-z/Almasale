@@ -206,7 +206,7 @@ function ScannerStep({ cart, onAdd, onDone }: { cart: CartItem[]; onAdd: (p: typ
           : <div className="w-full h-full flex flex-col items-center justify-center gap-3" style={{ background: '#080808' }}><Camera size={48} color="#333" /><p style={{ color: MUTED, fontSize: 13 }}>Camera unavailable — Demo Mode</p></div>
         }
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="relative" style={{ width: 220, height: 220 }}>
+          <div className="relative w-[220px] max-w-[80%] aspect-square">
             <div className="absolute inset-0 rounded-2xl" style={{ boxShadow: '0 0 0 9999px rgba(0,0,0,0.7)' }} />
             <div className="absolute top-0 left-0 w-8 h-8 rounded-tl-2xl" style={{ borderTop: '3px solid #10B981', borderLeft: '3px solid #10B981' }} />
             <div className="absolute top-0 right-0 w-8 h-8 rounded-tr-2xl" style={{ borderTop: '3px solid #10B981', borderRight: '3px solid #10B981' }} />

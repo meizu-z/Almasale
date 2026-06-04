@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Package, Search, Plus, Edit2, AlertTriangle, X, ChevronDown, CheckCircle } from 'lucide-react';
 import { PRODUCTS, Product, formatCurrency } from './mockData';
+import { useIsMobile } from './ui/use-mobile';
 
 const BG = '#000000';
 const CARD = '#121212';
@@ -71,7 +72,118 @@ function AddStockModal({ product, onClose, onConfirm }: {
   );
 }
 
+/* ─── Product row — responsive: grid row on md+, card on mobile ─── */
+function StockButtons({ product, onAddStock }: { product: Product; onAddStock: (p: Product) => void }) {
+  return (
+    <>
+      <button
+        onClick={() => onAddStock(product)}
+        className="flex items-center justify-center gap-1.5 px-3 py-2 rounded-xl transition-colors"
+        style={{ background: '#10B981', color: '#000', fontSize: 11, fontWeight: 700 }}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#059669'}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#10B981'}
+      >
+        <Plus size={11} /> Stock
+      </button>
+      <button
+        className="w-8 h-8 rounded-xl flex items-center justify-center shrink-0 transition-colors"
+        style={{ background: 'transparent', border: '1.5px solid rgba(24,0,173,0.3)', color: '#818cf8' }}
+        onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(24,0,173,0.1)'}
+        onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
+      >
+        <Edit2 size={11} color="#818cf8" />
+      </button>
+    </>
+  );
+}
+
+function StockValue({ stock }: { stock: number }) {
+  return (
+    <div className="flex items-center gap-2">
+      <span style={{ color: stock < 100 ? '#F59E0B' : '#10B981', fontSize: 13, fontWeight: 800 }}>{stock}</span>
+      {stock < 100 && (
+        <span className="px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B', fontSize: 9, fontWeight: 800 }}>LOW</span>
+      )}
+    </div>
+  );
+}
+
+function ProductRow({ product: p, index, isMobile, onAddStock }: {
+  product: Product; index: number; isMobile: boolean; onAddStock: (p: Product) => void;
+}) {
+  const motionProps = {
+    layout: true,
+    initial: { opacity: 0, y: 5 },
+    animate: { opacity: 1, y: 0 },
+    exit: { opacity: 0, scale: 0.97 },
+    transition: { delay: Math.min(index * 0.025, 0.3) },
+  };
+
+  if (isMobile) {
+    return (
+      <motion.div
+        {...motionProps}
+        className="rounded-2xl p-4"
+        style={{ background: CARD, border: '1px solid rgba(255,255,255,0.04)' }}
+      >
+        <div className="flex items-center gap-3 mb-3">
+          <span className="text-2xl shrink-0">{p.icon}</span>
+          <div className="min-w-0 flex-1">
+            <div style={{ color: TEXT, fontSize: 13, fontWeight: 600 }} className="truncate">{p.name}</div>
+            <div style={{ color: MUTED, fontSize: 11, fontFamily: 'monospace' }}>{p.sku}</div>
+          </div>
+          <span className="px-2 py-1 rounded-lg shrink-0" style={{ background: 'rgba(255,255,255,0.04)', color: MUTED, fontSize: 10 }}>
+            {p.category}
+          </span>
+        </div>
+        <div className="grid grid-cols-2 gap-2 mb-3">
+          <div className="rounded-xl px-3 py-2" style={{ background: INNER }}>
+            <div style={{ color: MUTED, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Stock</div>
+            <StockValue stock={p.stock} />
+          </div>
+          <div className="rounded-xl px-3 py-2" style={{ background: INNER }}>
+            <div style={{ color: MUTED, fontSize: 10, fontWeight: 600, marginBottom: 2 }}>Presyo</div>
+            <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>{formatCurrency(p.price)}</div>
+          </div>
+        </div>
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <StockButtons product={p} onAddStock={onAddStock} />
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      {...motionProps}
+      className="grid items-center px-5 py-3.5 rounded-2xl transition-colors cursor-pointer"
+      style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 120px', background: CARD, border: '1px solid rgba(255,255,255,0.04)' }}
+      onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#1a1a1a'}
+      onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = CARD}
+    >
+      <div className="flex items-center gap-3 min-w-0">
+        <span className="text-xl shrink-0">{p.icon}</span>
+        <div className="min-w-0">
+          <div style={{ color: TEXT, fontSize: 12, fontWeight: 600 }} className="truncate">{p.name}</div>
+        </div>
+      </div>
+      <div style={{ color: MUTED, fontSize: 11, fontFamily: 'monospace' }}>{p.sku}</div>
+      <div>
+        <span className="px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', color: MUTED, fontSize: 11 }}>
+          {p.category}
+        </span>
+      </div>
+      <StockValue stock={p.stock} />
+      <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>{formatCurrency(p.price)}</div>
+      <div className="flex items-center gap-2 justify-end">
+        <StockButtons product={p} onAddStock={onAddStock} />
+      </div>
+    </motion.div>
+  );
+}
+
 export function Inventory() {
+  const isMobile = useIsMobile();
   const [products, setProducts] = useState<Product[]>(PRODUCTS);
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('Lahat');
@@ -94,9 +206,9 @@ export function Inventory() {
   };
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-6 gap-4" style={{ background: BG }}>
+    <div className="h-full flex flex-col overflow-y-auto lg:overflow-hidden p-4 sm:p-6 gap-4" style={{ background: BG }}>
       {/* Header */}
-      <div className="flex items-center justify-between shrink-0">
+      <div className="flex items-center justify-between gap-3 shrink-0">
         <div>
           <h1 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Inventory</h1>
           <p style={{ color: MUTED, fontSize: 12, marginTop: 3 }}>Stock management at product catalog</p>
@@ -112,7 +224,7 @@ export function Inventory() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
         {[
           { label: 'Total SKUs', value: `${products.length} items`, icon: Package, color: '#1800ad' },
           { label: 'Inventory Value', value: formatCurrency(totalValue), icon: Package, color: '#10B981' },
@@ -165,9 +277,9 @@ export function Inventory() {
         )}
       </AnimatePresence>
 
-      {/* Column headers */}
+      {/* Column headers — desktop only */}
       <div
-        className="shrink-0 grid items-center px-5 py-2.5 rounded-xl"
+        className="shrink-0 hidden md:grid items-center px-5 py-2.5 rounded-xl"
         style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 120px', background: INNER, border: '1px solid rgba(255,255,255,0.04)' }}
       >
         {['Produkto', 'SKU', 'Kategorya', 'Stock', 'Presyo', 'Aksyon'].map(h => (
@@ -179,57 +291,7 @@ export function Inventory() {
       <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-1" style={{ scrollbarWidth: 'thin', scrollbarColor: '#222 transparent' }}>
         <AnimatePresence>
           {filtered.map((p, i) => (
-            <motion.div
-              key={p.id}
-              layout
-              initial={{ opacity: 0, y: 5 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.97 }}
-              transition={{ delay: i * 0.025 }}
-              className="grid items-center px-5 py-3.5 rounded-2xl transition-colors cursor-pointer"
-              style={{ gridTemplateColumns: '2.5fr 1fr 1fr 1fr 1fr 120px', background: CARD, border: '1px solid rgba(255,255,255,0.04)' }}
-              onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#1a1a1a'}
-              onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = CARD}
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <span className="text-xl shrink-0">{p.icon}</span>
-                <div className="min-w-0">
-                  <div style={{ color: TEXT, fontSize: 12, fontWeight: 600 }} className="truncate">{p.name}</div>
-                </div>
-              </div>
-              <div style={{ color: MUTED, fontSize: 11, fontFamily: 'monospace' }}>{p.sku}</div>
-              <div>
-                <span className="px-2 py-1 rounded-lg" style={{ background: 'rgba(255,255,255,0.04)', color: MUTED, fontSize: 11 }}>
-                  {p.category}
-                </span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span style={{ color: p.stock < 100 ? '#F59E0B' : '#10B981', fontSize: 13, fontWeight: 800 }}>{p.stock}</span>
-                {p.stock < 100 && (
-                  <span className="px-1.5 py-0.5 rounded-md" style={{ background: 'rgba(245,158,11,0.1)', color: '#F59E0B', fontSize: 9, fontWeight: 800 }}>LOW</span>
-                )}
-              </div>
-              <div style={{ color: TEXT, fontSize: 13, fontWeight: 800 }}>{formatCurrency(p.price)}</div>
-              <div className="flex items-center gap-2 justify-end">
-                <button
-                  onClick={() => setAddingStock(p)}
-                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl transition-colors"
-                  style={{ background: '#10B981', color: '#000', fontSize: 11, fontWeight: 700 }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#059669'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#10B981'}
-                >
-                  <Plus size={11} /> Stock
-                </button>
-                <button
-                  className="w-8 h-8 rounded-xl flex items-center justify-center transition-colors"
-                  style={{ background: 'transparent', border: '1.5px solid rgba(24,0,173,0.3)', color: '#818cf8' }}
-                  onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(24,0,173,0.1)'}
-                  onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}
-                >
-                  <Edit2 size={11} color="#818cf8" />
-                </button>
-              </div>
-            </motion.div>
+            <ProductRow key={p.id} product={p} index={i} isMobile={isMobile} onAddStock={setAddingStock} />
           ))}
         </AnimatePresence>
 

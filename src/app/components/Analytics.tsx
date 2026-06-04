@@ -55,14 +55,14 @@ export function Analytics() {
   const maxSold = Math.max(...TOP_PRODUCTS.map(p => p.sold));
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-6 gap-4" style={{ background: BG }}>
+    <div className="h-full flex flex-col overflow-y-auto lg:overflow-hidden p-4 sm:p-6 gap-4" style={{ background: BG }}>
       <div className="shrink-0">
         <h1 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Analytics</h1>
         <p style={{ color: MUTED, fontSize: 12, marginTop: 3 }}>Lingguhang buod ng negosyo · Hunyo 2026</p>
       </div>
 
       {/* KPIs */}
-      <div className="grid grid-cols-4 gap-3 shrink-0">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 shrink-0">
         {KPI.map(({ label, value, sub, icon: Icon, color }, i) => (
           <motion.div key={label} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.07 }}
             className="rounded-2xl p-5" style={card}>
@@ -76,10 +76,10 @@ export function Analytics() {
         ))}
       </div>
 
-      {/* Charts */}
-      <div className="flex-1 min-h-0" style={{ display: 'grid', gridTemplateColumns: '1.6fr 1fr', gap: 14 }}>
+      {/* Charts — stacks on mobile, side-by-side on desktop */}
+      <div className="flex flex-col gap-3.5 lg:grid lg:flex-1 lg:min-h-0 lg:gap-[14px] lg:[grid-template-columns:1.6fr_1fr]">
         {/* Weekly Bar Chart */}
-        <div className="rounded-3xl p-6 flex flex-col" style={card}>
+        <div className="rounded-3xl p-6 flex flex-col min-h-[320px] lg:min-h-0" style={card}>
           <div className="flex items-center justify-between mb-4 shrink-0">
             <span style={{ color: TEXT, fontWeight: 700, fontSize: 14 }}>Weekly Sales vs Profit</span>
             <div className="flex items-center gap-4">
@@ -106,10 +106,10 @@ export function Analytics() {
           </div>
         </div>
 
-        {/* Right column */}
-        <div style={{ display: 'grid', gridTemplateRows: '1fr 1fr', gap: 14, minHeight: 0 }}>
+        {/* Right column — stacks on mobile, two rows on desktop */}
+        <div className="flex flex-col gap-3.5 lg:grid lg:min-h-0 lg:gap-[14px] lg:[grid-template-rows:minmax(0,1fr)_minmax(0,1fr)]">
           {/* Payment Methods Pie */}
-          <div className="rounded-3xl p-5 flex flex-col" style={card}>
+          <div className="rounded-3xl p-5 flex flex-col min-h-[280px] lg:min-h-0" style={card}>
             <span style={{ color: TEXT, fontWeight: 700, fontSize: 13, marginBottom: 8 }} className="shrink-0">
               Payment Methods
             </span>
@@ -131,7 +131,7 @@ export function Analytics() {
           </div>
 
           {/* Top Products */}
-          <div className="rounded-3xl p-5 flex flex-col" style={card}>
+          <div className="rounded-3xl p-5 flex flex-col min-h-[280px] lg:min-h-0" style={card}>
             <span style={{ color: TEXT, fontWeight: 700, fontSize: 13, marginBottom: 12 }} className="shrink-0">
               Top Products
             </span>

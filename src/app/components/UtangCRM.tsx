@@ -172,14 +172,14 @@ function CustomerRow({
                 <div style={{ color: MUTED, fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', marginBottom: 16 }}>
                   Customer Profile
                 </div>
-                <div className="flex items-start gap-6">
+                <div className="flex flex-col items-center sm:flex-row sm:items-start gap-5 sm:gap-6">
                   {/* Left: Tiwala Score Ring */}
                   <div className="shrink-0">
                     <TiwaScoreRing score={customer.tiwaScore} />
                   </div>
 
                   {/* Divider */}
-                  <div style={{ width: 1, background: 'rgba(255,255,255,0.06)', alignSelf: 'stretch' }} />
+                  <div className="hidden sm:block" style={{ width: 1, background: 'rgba(255,255,255,0.06)', alignSelf: 'stretch' }} />
 
                   {/* Right: Manual Credit Limit */}
                   <div className="flex-1 flex flex-col justify-center gap-3">
@@ -339,7 +339,7 @@ export function UtangCRM() {
   ];
 
   return (
-    <div className="h-full flex flex-col overflow-hidden p-6 gap-4" style={{ background: BG }}>
+    <div className="h-full flex flex-col overflow-y-auto lg:overflow-hidden p-4 sm:p-6 gap-4" style={{ background: BG }}>
       {/* Header */}
       <div className="shrink-0">
         <h1 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Utang CRM</h1>
@@ -347,7 +347,7 @@ export function UtangCRM() {
       </div>
 
       {/* Summary stats */}
-      <div className="grid grid-cols-3 gap-3 shrink-0">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 shrink-0">
         {[
           { label: 'Total Outstanding', value: formatCurrency(totalDebt), icon: TrendingDown, color: '#bf0404' },
           { label: 'High Risk Accounts', value: `${highRiskCount} accounts`, icon: AlertTriangle, color: '#F59E0B' },
