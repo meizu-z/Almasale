@@ -40,6 +40,7 @@ const TOP_PRODUCTS = [
 ];
 
 const TOOLTIP = {
+  cursor: { fill: 'rgba(255,255,255,0.035)' },
   contentStyle: { background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, fontSize: 12 },
   labelStyle: { color: TEXT },
 };

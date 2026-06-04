@@ -167,6 +167,7 @@ function DebtAgingChart() {
             <YAxis tick={{ fill: MUTED, fontSize: 10 }} axisLine={false} tickLine={false}
               tickFormatter={v => `₱${(v / 1000).toFixed(0)}k`} />
             <Tooltip
+              cursor={{ fill: 'rgba(255,255,255,0.035)' }}
               contentStyle={{ background: '#1a1a1a', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 14, fontSize: 12 }}
               labelStyle={{ color: TEXT }}
               formatter={(v: number) => [formatCurrency(v), 'Amount']}
