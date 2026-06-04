@@ -434,6 +434,23 @@ function ReceiptCard({ receipt, onNew, className = 'flex flex-col h-full p-6 gap
   const mc = { cash: 'CASH', gcash: 'GCash', maya: 'Maya', utang: 'UTANG' };
   const mcColor = { cash: '#10B981', gcash: '#1800ad', maya: '#10B981', utang: '#F59E0B' };
 
+  // Mock actions for the prototype — simulate the async print / send flows with a toast.
+  const handlePrint = () => {
+    toast.promise(new Promise<void>(resolve => setTimeout(resolve, 1200)), {
+      loading: 'Piniprint ang resibo...',
+      success: `Resibo ${receipt.id} na-print! 🧾`,
+      error: 'Hindi ma-print ang resibo',
+    });
+  };
+
+  const handleEReceipt = () => {
+    toast.promise(new Promise<void>(resolve => setTimeout(resolve, 1200)), {
+      loading: 'Pinapadala ang e-receipt...',
+      success: `E-Receipt naipadala kay ${receipt.customer}! 📩`,
+      error: 'Hindi naipadala ang e-receipt',
+    });
+  };
+
   return (
     <div className={className}>
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 280, damping: 22 }} className="flex justify-center">
@@ -482,12 +499,16 @@ function ReceiptCard({ receipt, onNew, className = 'flex flex-col h-full p-6 gap
       </div>
       <div className="shrink-0 space-y-2.5">
         <div className="grid grid-cols-2 gap-2">
-          <button className="py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-colors"
-            style={{ background: 'transparent', border: '1.5px solid rgba(255,255,255,0.1)', color: MUTED, fontSize: 13 }}>
+          <button onClick={handlePrint} className="py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-colors"
+            style={{ background: 'transparent', border: '1.5px solid rgba(255,255,255,0.1)', color: MUTED, fontSize: 13 }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
             <Printer size={15} /> I-print
           </button>
-          <button className="py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-colors"
-            style={{ background: 'transparent', border: '1.5px solid rgba(255,255,255,0.1)', color: MUTED, fontSize: 13 }}>
+          <button onClick={handleEReceipt} className="py-3.5 rounded-2xl flex items-center justify-center gap-2 transition-colors"
+            style={{ background: 'transparent', border: '1.5px solid rgba(255,255,255,0.1)', color: MUTED, fontSize: 13 }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = 'rgba(255,255,255,0.04)'}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = 'transparent'}>
             <Send size={15} /> E-Receipt
           </button>
         </div>

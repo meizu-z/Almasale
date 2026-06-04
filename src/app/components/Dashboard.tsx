@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { motion } from 'motion/react';
+import { toast } from 'sonner';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid,
 } from 'recharts';
@@ -280,6 +281,19 @@ export function Dashboard() {
   const totalInventoryValue = PRODUCTS.reduce((s, p) => s + p.price * p.stock, 0);
   const activeUtang = CUSTOMERS.filter(c => c.balance > 0).length;
 
+  // Mock refresh for the prototype — spin the icon and simulate fetching latest data.
+  const [refreshing, setRefreshing] = useState(false);
+  const handleRefresh = () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    toast.promise(new Promise<void>(resolve => setTimeout(resolve, 1200)), {
+      loading: 'Ina-update ang datos...',
+      success: 'Na-refresh ang dashboard! ✓',
+      error: 'Hindi ma-refresh',
+    });
+    setTimeout(() => setRefreshing(false), 1200);
+  };
+
   const metrics = [
     { label: 'Benta Ngayon', value: 12456, formatted: '₱12,456.00', icon: TrendingUp, color: '#10B981', trend: '+12%' },
     { label: 'Tubong Inaasahan', value: 3782, formatted: '₱3,782.00', icon: Wallet, color: '#1800ad', trend: '+8%' },
@@ -301,12 +315,21 @@ export function Dashboard() {
           </p>
         </div>
         <button
+          onClick={handleRefresh}
+          disabled={refreshing}
           className="flex items-center gap-2 px-3.5 py-2 rounded-xl transition-colors"
           style={{ background: CARD, color: MUTED, fontSize: 12, border: '1px solid rgba(255,255,255,0.05)' }}
           onMouseEnter={e => { (e.currentTarget as HTMLElement).style.color = TEXT; }}
           onMouseLeave={e => { (e.currentTarget as HTMLElement).style.color = MUTED; }}
         >
-          <RefreshCw size={12} /> Refresh
+          <motion.span
+            className="inline-flex"
+            animate={refreshing ? { rotate: 360 } : { rotate: 0 }}
+            transition={refreshing ? { duration: 0.8, repeat: Infinity, ease: 'linear' } : { duration: 0 }}
+          >
+            <RefreshCw size={12} />
+          </motion.span>
+          {refreshing ? 'Nire-refresh...' : 'Refresh'}
         </button>
       </div>
 
