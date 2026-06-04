@@ -257,6 +257,24 @@ function TopDebtors() {
   );
 }
 
+/* ─── Filipino date (Day, Buwan Petsa, Taon) ─── */
+const PH_DAYS = ['Linggo', 'Lunes', 'Martes', 'Miyerkules', 'Huwebes', 'Biyernes', 'Sabado'];
+const PH_MONTHS = ['Enero', 'Pebrero', 'Marso', 'Abril', 'Mayo', 'Hunyo', 'Hulyo', 'Agosto', 'Setyembre', 'Oktubre', 'Nobyembre', 'Disyembre'];
+function formatPhDate(d: Date) {
+  return `${PH_DAYS[d.getDay()]}, ${PH_MONTHS[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+}
+
+/* Live date + time — self-contained so its 1s tick doesn't re-render the charts. */
+function LiveDateTime() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  const time = now.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+  return <>{formatPhDate(now)} · {time}</>;
+}
+
 /* ─── Dashboard Page ─── */
 export function Dashboard() {
   const totalInventoryValue = PRODUCTS.reduce((s, p) => s + p.price * p.stock, 0);
@@ -279,7 +297,7 @@ export function Dashboard() {
             Command Center
           </h1>
           <p style={{ color: MUTED, fontSize: 12, marginTop: 3 }}>
-            Martes, Hunyo 2, 2026 · Santos General Store
+            <LiveDateTime /> · Santos General Store
           </p>
         </div>
         <button
