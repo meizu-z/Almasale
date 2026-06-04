@@ -81,7 +81,12 @@ export function AppShell({ page, onNavigate, isOnline, showSidebar, children }: 
           >
             <Menu size={22} color="#F8FAFC" />
           </button>
-          <img src={watermarkLogo} alt="" className="w-7 h-7 object-contain shrink-0" />
+          <img
+            src={watermarkLogo}
+            alt=""
+            className="w-8 h-8 object-contain shrink-0"
+            style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.55))' }}
+          />
           <span style={{ color: '#F8FAFC', fontWeight: 900, fontSize: 16, letterSpacing: '-0.02em' }}>
             AlmaSale
           </span>

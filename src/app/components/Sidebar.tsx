@@ -31,14 +31,14 @@ export function Sidebar({ currentPage, onNavigate, isOnline }: SidebarProps) {
           <img
             src={watermarkLogo}
             alt="AlmaSale logo"
-            className="w-10 h-10 object-contain shrink-0"
-            style={{ filter: 'drop-shadow(0 4px 12px rgba(24,0,173,0.5))' }}
+            className="w-12 h-12 object-contain shrink-0"
+            style={{ filter: 'drop-shadow(0 2px 6px rgba(0,0,0,0.55))' }}
           />
-          <div>
-            <div style={{ color: '#F8FAFC', fontWeight: 900, fontSize: 20, lineHeight: 1.1, letterSpacing: '-0.02em' }}>
+          <div className="leading-tight">
+            <div style={{ color: '#F8FAFC', fontWeight: 900, fontSize: 21, lineHeight: 1.05, letterSpacing: '-0.02em' }}>
               AlmaSale
             </div>
-            <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 500, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
+            <div style={{ color: '#94A3B8', fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', marginTop: 2 }}>
               Micro-Merchant OS
             </div>
           </div>
