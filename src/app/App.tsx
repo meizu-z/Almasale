@@ -93,8 +93,6 @@ export default function App() {
     return () => { window.removeEventListener('online', up); window.removeEventListener('offline', down); };
   }, []);
 
-  const showSidebar = page !== 'pos';
-
   return (
     <div className="h-screen w-full overflow-hidden" style={{ background: BG }}>
       <Toaster
@@ -120,7 +118,7 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <AppShell page={page} onNavigate={setPage} isOnline={isOnline} showSidebar={showSidebar}>
+      <AppShell page={page} onNavigate={setPage} isOnline={isOnline}>
         <AnimatePresence mode="wait">
           <motion.div
             key={page}

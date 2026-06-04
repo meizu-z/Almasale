@@ -8,18 +8,15 @@ interface AppShellProps {
   page: Page;
   onNavigate: (page: Page) => void;
   isOnline: boolean;
-  /** POS runs full-screen with no sidebar/top bar chrome. */
-  showSidebar: boolean;
   children: React.ReactNode;
 }
 
 /**
- * Owns the responsive navigation chrome:
+ * Owns the responsive navigation chrome for every page (POS included):
  *  - md+ : static 228px sidebar rail (unchanged desktop layout)
  *  - <md : sidebar collapses to an off-canvas drawer opened from a mobile top bar
- * POS (showSidebar=false) renders children full-screen with no chrome.
  */
-export function AppShell({ page, onNavigate, isOnline, showSidebar, children }: AppShellProps) {
+export function AppShell({ page, onNavigate, isOnline, children }: AppShellProps) {
   const isMobile = useIsMobile();
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -40,9 +37,6 @@ export function AppShell({ page, onNavigate, isOnline, showSidebar, children }: 
     onNavigate(p);
     setDrawerOpen(false);
   };
-
-  // POS: full screen, no nav chrome.
-  if (!showSidebar) return <>{children}</>;
 
   return (
     <div className="flex h-full min-h-0 w-full">

@@ -3,9 +3,10 @@ import { motion, AnimatePresence } from 'motion/react';
 import { toast } from 'sonner';
 import {
   ArrowLeft, Camera, Keyboard, Minus, Plus, ShoppingCart,
-  X, CheckCircle, Wifi, WifiOff, ChevronDown, User, Printer, Send, RotateCcw,
+  X, CheckCircle, Wifi, WifiOff, ChevronDown, User, Printer, Send, RotateCcw, Trash2,
 } from 'lucide-react';
 import { CUSTOMERS, PRODUCTS, CartItem, Customer, formatCurrency, RISK_CONFIG } from './mockData';
+import { useIsMobile } from './ui/use-mobile';
 
 const BG = '#000000';
 const CARD = '#121212';
@@ -15,6 +16,7 @@ const MUTED = '#94A3B8';
 
 type POSStep = 'customer' | 'mode' | 'scanner' | 'manual' | 'cart' | 'receipt';
 type PayMethod = 'cash' | 'gcash' | 'maya' | 'utang';
+type EntryTab = 'manual' | 'scan';
 
 interface Receipt {
   id: string; customer: string; items: CartItem[];
@@ -30,17 +32,12 @@ function RiskBadge({ score }: { score: 'good' | 'monitor' | 'high_risk' }) {
   );
 }
 
-/* ─── Step 1: Customer Gatekeeper ─── */
-function CustomerStep({ selected, onSelect, onNext }: { selected: Customer | null; onSelect: (c: Customer | null) => void; onNext: () => void }) {
+/* ─── Shared: Customer selector (dropdown + detail card) ─── */
+function CustomerSelector({ selected, onSelect }: { selected: Customer | null; onSelect: (c: Customer | null) => void }) {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-full p-6 gap-6">
-      <div>
-        <h2 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Sino ang Customer?</h2>
-        <p style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>Piliin ang customer bago mag-simula ng transaksyon.</p>
-      </div>
-
+    <>
       <div className="relative">
         <button
           onClick={() => setOpen(!open)}
@@ -112,8 +109,11 @@ function CustomerStep({ selected, onSelect, onNext }: { selected: Customer | nul
                 <div style={{ color: selected.balance > 0 ? '#bf0404' : '#10B981', fontSize: 16, fontWeight: 900 }}>{formatCurrency(selected.balance)}</div>
               </div>
               <div className="rounded-2xl p-3.5" style={{ background: INNER }}>
-                <div style={{ color: MUTED, fontSize: 11 }}>Available Credit</div>
-                <div style={{ color: TEXT, fontSize: 16, fontWeight: 900 }}>{formatCurrency(Math.max(0, selected.creditLimit - selected.balance))}</div>
+                <div style={{ color: MUTED, fontSize: 11 }}>Remaining Credit</div>
+                <div style={{ color: selected.creditLimit - selected.balance > 0 ? '#10B981' : '#bf0404', fontSize: 16, fontWeight: 900 }}>
+                  {formatCurrency(Math.max(0, selected.creditLimit - selected.balance))}
+                </div>
+                <div style={{ color: MUTED, fontSize: 10, marginTop: 2 }}>of {formatCurrency(selected.creditLimit)} limit</div>
               </div>
             </div>
             <div className="mt-3">
@@ -131,53 +131,46 @@ function CustomerStep({ selected, onSelect, onNext }: { selected: Customer | nul
           </motion.div>
         )}
       </AnimatePresence>
-
-      <div className="mt-auto">
-        <button onClick={onNext} className="w-full py-4 rounded-2xl transition-colors"
-          style={{ background: '#1800ad', color: '#fff', fontSize: 16, fontWeight: 800, boxShadow: '0 8px 32px rgba(24,0,173,0.45)', minHeight: 56 }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#150f9e'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#1800ad'}
-        >
-          Ituloy ang Transaksyon →
-        </button>
-      </div>
-    </div>
+    </>
   );
 }
 
-/* ─── Step 2: Entry Mode ─── */
-function ModeStep({ onScan, onManual }: { onScan: () => void; onManual: () => void }) {
+/* ─── Shared: Product search + tappable grid ─── */
+function ProductGrid({ cart, onAdd, gridClassName = 'grid-cols-2' }: { cart: CartItem[]; onAdd: (p: typeof PRODUCTS[0]) => void; gridClassName?: string }) {
+  const [search, setSearch] = useState('');
+  const filtered = PRODUCTS.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()));
+
+  const handleAdd = (p: typeof PRODUCTS[0]) => { onAdd(p); toast.success(`✓ ${p.name}`, { icon: '🛒' }); };
+
   return (
-    <div className="flex flex-col h-full p-6 gap-6">
-      <div>
-        <h2 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Paano mag-input?</h2>
-        <p style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>Piliin ang paraan ng pagpasok ng produkto.</p>
+    <>
+      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Hanapin ang produkto..."
+        className="w-full px-4 py-3.5 rounded-2xl outline-none"
+        style={{ background: CARD, color: TEXT, border: '1.5px solid rgba(255,255,255,0.07)', fontSize: 14 }} />
+      <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+        <div className={`grid ${gridClassName} gap-2.5 pb-2`}>
+          {filtered.map(p => {
+            const inCart = cart.find(ci => ci.product.id === p.id);
+            return (
+              <motion.button key={p.id} whileTap={{ scale: 0.95 }} onClick={() => handleAdd(p)}
+                className="flex flex-col items-start p-4 rounded-2xl text-left relative"
+                style={{ background: CARD, border: inCart ? '1.5px solid rgba(16,185,129,0.5)' : '1.5px solid rgba(255,255,255,0.05)', minHeight: 100 }}>
+                {inCart && (<div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#10B981', fontSize: 9, color: '#000', fontWeight: 900 }}>{inCart.quantity}</div>)}
+                <span className="text-2xl mb-2">{p.icon}</span>
+                <div style={{ color: TEXT, fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
+                <div style={{ color: '#10B981', fontSize: 13, fontWeight: 900, marginTop: 4 }}>{formatCurrency(p.price)}</div>
+                <div style={{ color: MUTED, fontSize: 10, marginTop: 2 }}>Stock: {p.stock}</div>
+              </motion.button>
+            );
+          })}
+        </div>
       </div>
-      <div className="flex flex-col gap-4 flex-1">
-        {[
-          { fn: onScan, emoji: '📷', title: 'Gamitin ang Scanner', desc: 'I-scan ang mga branded goods gamit ang camera ng device.', color: '#1800ad', textColor: '#818cf8' },
-          { fn: onManual, emoji: '⌨️', title: 'Manual na Paghahanap', desc: 'Hanapin ang produkto o pumili mula sa quick-tap grid.', color: 'rgba(255,255,255,0.06)', textColor: MUTED },
-        ].map(({ fn, emoji, title, desc, color, textColor }) => (
-          <motion.button key={title} whileTap={{ scale: 0.97 }} onClick={fn}
-            className="flex-1 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 transition-all"
-            style={{ background: CARD, border: `1.5px solid ${color}30`, minHeight: 160 }}
-            onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = `${color}60`}
-            onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = `${color}30`}
-          >
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ background: `${color}15` }}>{emoji}</div>
-            <div className="text-center">
-              <div style={{ color: TEXT, fontSize: 18, fontWeight: 800 }}>{title}</div>
-              <div style={{ color: MUTED, fontSize: 13, marginTop: 6 }}>{desc}</div>
-            </div>
-          </motion.button>
-        ))}
-      </div>
-    </div>
+    </>
   );
 }
 
-/* ─── Step 3A: Scanner ─── */
-function ScannerStep({ cart, onAdd, onDone }: { cart: CartItem[]; onAdd: (p: typeof PRODUCTS[0]) => void; onDone: () => void }) {
+/* ─── Shared: Scanner (camera + simulate) ─── */
+function ScannerView({ onAdd, footer }: { onAdd: (p: typeof PRODUCTS[0]) => void; footer?: React.ReactNode }) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [cameraError, setCameraError] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
@@ -195,12 +188,9 @@ function ScannerStep({ cart, onAdd, onDone }: { cart: CartItem[]; onAdd: (p: typ
     toast.success(`✓ ${p.name}`, { icon: '🛒' });
   }, [onAdd]);
 
-  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
-
   return (
     <div className="flex flex-col h-full relative">
-      <div className="flex-1 relative overflow-hidden" style={{ background: '#000' }}>
+      <div className="flex-1 relative overflow-hidden rounded-2xl" style={{ background: '#000' }}>
         {!cameraError
           ? <video ref={videoRef} autoPlay playsInline muted className="w-full h-full object-cover" />
           : <div className="w-full h-full flex flex-col items-center justify-center gap-3" style={{ background: '#080808' }}><Camera size={48} color="#333" /><p style={{ color: MUTED, fontSize: 13 }}>Camera unavailable — Demo Mode</p></div>
@@ -226,84 +216,16 @@ function ScannerStep({ cart, onAdd, onDone }: { cart: CartItem[]; onAdd: (p: typ
           >⚡ Simulate Scan</button>
         </div>
       </div>
-      {cartCount > 0 && (
-        <motion.div initial={{ y: 80 }} animate={{ y: 0 }} className="shrink-0 mx-4 mb-4 mt-3">
-          <button onClick={onDone} className="w-full flex items-center justify-between px-5 py-4 rounded-2xl"
-            style={{ background: '#1800ad', boxShadow: '0 8px 28px rgba(24,0,173,0.5)' }}>
-            <div className="flex items-center gap-3">
-              <div className="relative"><ShoppingCart size={20} color="white" />
-                <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#bf0404', fontSize: 10, color: '#fff', fontWeight: 900 }}>{cartCount}</div>
-              </div>
-              <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>Tingnan ang Cart</span>
-            </div>
-            <span style={{ color: '#fff', fontWeight: 900, fontSize: 15 }}>{formatCurrency(cartTotal)}</span>
-          </button>
-        </motion.div>
-      )}
-      {cartCount === 0 && (
-        <div className="shrink-0 p-4">
-          <button onClick={onDone} className="w-full py-3 rounded-2xl" style={{ background: CARD, color: MUTED, fontSize: 13, border: '1px solid rgba(255,255,255,0.06)' }}>
-            Walang laman — bumalik
-          </button>
-        </div>
-      )}
+      {footer}
     </div>
   );
 }
 
-/* ─── Step 3B: Manual ─── */
-function ManualStep({ cart, onAdd, onDone }: { cart: CartItem[]; onAdd: (p: typeof PRODUCTS[0]) => void; onDone: () => void }) {
-  const [search, setSearch] = useState('');
-  const filtered = PRODUCTS.filter(p => p.name.toLowerCase().includes(search.toLowerCase()) || p.category.toLowerCase().includes(search.toLowerCase()));
-  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
-  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
-
-  const handleAdd = (p: typeof PRODUCTS[0]) => { onAdd(p); toast.success(`✓ ${p.name}`, { icon: '🛒' }); };
-
-  return (
-    <div className="flex flex-col h-full p-4 gap-3">
-      <h2 style={{ color: TEXT, fontSize: 20, fontWeight: 900 }}>Manual na Paghahanap</h2>
-      <input value={search} onChange={e => setSearch(e.target.value)} placeholder="🔍  Hanapin ang produkto..." autoFocus
-        className="w-full px-4 py-3.5 rounded-2xl outline-none"
-        style={{ background: CARD, color: TEXT, border: '1.5px solid rgba(255,255,255,0.07)', fontSize: 14 }} />
-      <div className="flex-1 min-h-0 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-        <div className="grid grid-cols-2 gap-2.5 pb-2">
-          {filtered.map(p => {
-            const inCart = cart.find(ci => ci.product.id === p.id);
-            return (
-              <motion.button key={p.id} whileTap={{ scale: 0.95 }} onClick={() => handleAdd(p)}
-                className="flex flex-col items-start p-4 rounded-2xl text-left relative"
-                style={{ background: CARD, border: inCart ? '1.5px solid rgba(16,185,129,0.5)' : '1.5px solid rgba(255,255,255,0.05)', minHeight: 100 }}>
-                {inCart && (<div className="absolute top-2.5 right-2.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#10B981', fontSize: 9, color: '#000', fontWeight: 900 }}>{inCart.quantity}</div>)}
-                <span className="text-2xl mb-2">{p.icon}</span>
-                <div style={{ color: TEXT, fontSize: 12, fontWeight: 700, lineHeight: 1.3 }}>{p.name}</div>
-                <div style={{ color: '#10B981', fontSize: 13, fontWeight: 900, marginTop: 4 }}>{formatCurrency(p.price)}</div>
-                <div style={{ color: MUTED, fontSize: 10, marginTop: 2 }}>Stock: {p.stock}</div>
-              </motion.button>
-            );
-          })}
-        </div>
-      </div>
-      {cartCount > 0 && (
-        <motion.button initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={onDone}
-          className="shrink-0 w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-colors"
-          style={{ background: '#1800ad', boxShadow: '0 8px 28px rgba(24,0,173,0.45)', minHeight: 56 }}
-          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#150f9e'}
-          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#1800ad'}
-        >
-          <div className="flex items-center gap-3"><ShoppingCart size={20} color="white" /><span style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>Tingnan ang Cart ({cartCount})</span></div>
-          <span style={{ color: '#fff', fontWeight: 900, fontSize: 15 }}>{formatCurrency(cartTotal)}</span>
-        </motion.button>
-      )}
-    </div>
-  );
-}
-
-/* ─── Step 4: Cart + Payment ─── */
-function CartStep({ cart, customer, onUpdateQty, onRemove, onProceed, onBack }: {
+/* ─── Shared: Cart list + payment panel ─── */
+function CartPanel({ cart, customer, onUpdateQty, onRemove, onProceed, onBack }: {
   cart: CartItem[]; customer: Customer | null;
   onUpdateQty: (id: string, delta: number) => void; onRemove: (id: string) => void;
-  onProceed: (method: PayMethod, tendered: number, sukli: number) => void; onBack: () => void;
+  onProceed: (method: PayMethod, tendered: number, sukli: number) => void; onBack?: () => void;
 }) {
   const [payMethod, setPayMethod] = useState<PayMethod | null>(null);
   const [tendered, setTendered] = useState('');
@@ -354,7 +276,7 @@ function CartStep({ cart, customer, onUpdateQty, onRemove, onProceed, onBack }: 
           <div className="flex flex-col items-center justify-center py-12 gap-3">
             <ShoppingCart size={40} color="#222" />
             <p style={{ color: MUTED, fontSize: 13 }}>Walang laman ang cart</p>
-            <button onClick={onBack} style={{ color: '#1800ad', fontSize: 13, fontWeight: 700 }}>← Bumalik</button>
+            {onBack && <button onClick={onBack} style={{ color: '#1800ad', fontSize: 13, fontWeight: 700 }}>← Bumalik</button>}
           </div>
         )}
         {cart.map(item => (
@@ -367,7 +289,14 @@ function CartStep({ cart, customer, onUpdateQty, onRemove, onProceed, onBack }: 
                   <div style={{ color: MUTED, fontSize: 12 }}>{formatCurrency(item.product.price)} / unit</div>
                 </div>
               </div>
-              <button onClick={() => onRemove(item.product.id)}><X size={15} color={MUTED} /></button>
+              <button onClick={() => onRemove(item.product.id)} aria-label={`Tanggalin ang ${item.product.name}`}
+                className="w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition-colors"
+                style={{ background: 'rgba(191,4,4,0.1)', minWidth: 32 }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(191,4,4,0.2)'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'rgba(191,4,4,0.1)'; }}
+              >
+                <Trash2 size={15} color="#bf0404" />
+              </button>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -473,7 +402,7 @@ function CartStep({ cart, customer, onUpdateQty, onRemove, onProceed, onBack }: 
               animate={shake ? { x: [-12, 12, -10, 10, -6, 6, 0] } : {}}
               transition={{ duration: 0.5 }}
               className="w-full rounded-3xl p-7"
-              style={{ background: '#121212', border: '1px solid rgba(191,4,4,0.3)', boxShadow: '0 24px 80px rgba(0,0,0,0.9)' }}
+              style={{ background: '#121212', border: '1px solid rgba(191,4,4,0.3)', boxShadow: '0 24px 80px rgba(0,0,0,0.9)', maxWidth: 420 }}
             >
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: 'rgba(191,4,4,0.12)' }}>
@@ -500,13 +429,13 @@ function CartStep({ cart, customer, onUpdateQty, onRemove, onProceed, onBack }: 
   );
 }
 
-/* ─── Step 5: Receipt ─── */
-function ReceiptStep({ receipt, onNew }: { receipt: Receipt; onNew: () => void }) {
+/* ─── Shared: Receipt card body ─── */
+function ReceiptCard({ receipt, onNew, className = 'flex flex-col h-full p-6 gap-5' }: { receipt: Receipt; onNew: () => void; className?: string }) {
   const mc = { cash: 'CASH', gcash: 'GCash', maya: 'Maya', utang: 'UTANG' };
   const mcColor = { cash: '#10B981', gcash: '#1800ad', maya: '#10B981', utang: '#F59E0B' };
 
   return (
-    <div className="flex flex-col h-full p-6 gap-5">
+    <div className={className}>
       <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} transition={{ type: 'spring', stiffness: 280, damping: 22 }} className="flex justify-center">
         <div className="w-20 h-20 rounded-3xl flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.12)', boxShadow: '0 0 50px rgba(16,185,129,0.25)' }}>
           <CheckCircle size={40} color="#10B981" />
@@ -516,7 +445,7 @@ function ReceiptStep({ receipt, onNew }: { receipt: Receipt; onNew: () => void }
         <div style={{ color: '#10B981', fontSize: 22, fontWeight: 900 }}>Matagumpay!</div>
         <div style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>{receipt.time} · ID: {receipt.id}</div>
       </div>
-      <div className="rounded-3xl p-5 flex-1 overflow-y-auto" style={{ background: CARD, border: '1px solid rgba(255,255,255,0.06)', scrollbarWidth: 'none' }}>
+      <div className="rounded-3xl p-5 flex-1 min-h-0 overflow-y-auto" style={{ background: CARD, border: '1px solid rgba(255,255,255,0.06)', scrollbarWidth: 'none' }}>
         <div className="flex items-center justify-between mb-4 pb-4" style={{ borderBottom: '1px solid rgba(255,255,255,0.07)' }}>
           <div>
             <div style={{ color: MUTED, fontSize: 11 }}>Customer</div>
@@ -572,31 +501,159 @@ function ReceiptStep({ receipt, onNew }: { receipt: Receipt; onNew: () => void }
   );
 }
 
-/* ─── Main POS View ─── */
-export function POSView({ onBack, isOnline }: { onBack: () => void; isOnline: boolean }) {
+/* ─── Wizard Step 1: Customer Gatekeeper ─── */
+function CustomerStep({ selected, onSelect, onNext }: { selected: Customer | null; onSelect: (c: Customer | null) => void; onNext: () => void }) {
+  return (
+    <div className="flex flex-col h-full p-6 gap-6">
+      <div>
+        <h2 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Sino ang Customer?</h2>
+        <p style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>Piliin ang customer bago mag-simula ng transaksyon.</p>
+      </div>
+
+      <CustomerSelector selected={selected} onSelect={onSelect} />
+
+      <div className="mt-auto">
+        <button onClick={onNext} className="w-full py-4 rounded-2xl transition-colors"
+          style={{ background: '#1800ad', color: '#fff', fontSize: 16, fontWeight: 800, boxShadow: '0 8px 32px rgba(24,0,173,0.45)', minHeight: 56 }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#150f9e'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#1800ad'}
+        >
+          Ituloy ang Transaksyon →
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Wizard Step 2: Entry Mode ─── */
+function ModeStep({ onScan, onManual }: { onScan: () => void; onManual: () => void }) {
+  return (
+    <div className="flex flex-col h-full p-6 gap-6">
+      <div>
+        <h2 style={{ color: TEXT, fontSize: 22, fontWeight: 900, letterSpacing: '-0.02em' }}>Paano mag-input?</h2>
+        <p style={{ color: MUTED, fontSize: 13, marginTop: 4 }}>Piliin ang paraan ng pagpasok ng produkto.</p>
+      </div>
+      <div className="flex flex-col gap-4 flex-1">
+        {[
+          { fn: onScan, emoji: '📷', title: 'Gamitin ang Scanner', desc: 'I-scan ang mga branded goods gamit ang camera ng device.', color: '#1800ad', textColor: '#818cf8' },
+          { fn: onManual, emoji: '⌨️', title: 'Manual na Paghahanap', desc: 'Hanapin ang produkto o pumili mula sa quick-tap grid.', color: 'rgba(255,255,255,0.06)', textColor: MUTED },
+        ].map(({ fn, emoji, title, desc, color }) => (
+          <motion.button key={title} whileTap={{ scale: 0.97 }} onClick={fn}
+            className="flex-1 rounded-3xl p-8 flex flex-col items-center justify-center gap-4 transition-all"
+            style={{ background: CARD, border: `1.5px solid ${color}30`, minHeight: 160 }}
+            onMouseEnter={e => (e.currentTarget as HTMLElement).style.borderColor = `${color}60`}
+            onMouseLeave={e => (e.currentTarget as HTMLElement).style.borderColor = `${color}30`}
+          >
+            <div className="w-16 h-16 rounded-2xl flex items-center justify-center text-3xl" style={{ background: `${color}15` }}>{emoji}</div>
+            <div className="text-center">
+              <div style={{ color: TEXT, fontSize: 18, fontWeight: 800 }}>{title}</div>
+              <div style={{ color: MUTED, fontSize: 13, marginTop: 6 }}>{desc}</div>
+            </div>
+          </motion.button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ─── Wizard Step 3A: Scanner ─── */
+function ScannerStep({ cart, onAdd, onDone }: { cart: CartItem[]; onAdd: (p: typeof PRODUCTS[0]) => void; onDone: () => void }) {
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+
+  const footer = cartCount > 0 ? (
+    <motion.div initial={{ y: 80 }} animate={{ y: 0 }} className="shrink-0 mx-4 mb-4 mt-3">
+      <button onClick={onDone} className="w-full flex items-center justify-between px-5 py-4 rounded-2xl"
+        style={{ background: '#1800ad', boxShadow: '0 8px 28px rgba(24,0,173,0.5)' }}>
+        <div className="flex items-center gap-3">
+          <div className="relative"><ShoppingCart size={20} color="white" />
+            <div className="absolute -top-1.5 -right-1.5 w-5 h-5 rounded-full flex items-center justify-center" style={{ background: '#bf0404', fontSize: 10, color: '#fff', fontWeight: 900 }}>{cartCount}</div>
+          </div>
+          <span style={{ color: '#fff', fontWeight: 800, fontSize: 14 }}>Tingnan ang Cart</span>
+        </div>
+        <span style={{ color: '#fff', fontWeight: 900, fontSize: 15 }}>{formatCurrency(cartTotal)}</span>
+      </button>
+    </motion.div>
+  ) : (
+    <div className="shrink-0 p-4">
+      <button onClick={onDone} className="w-full py-3 rounded-2xl" style={{ background: CARD, color: MUTED, fontSize: 13, border: '1px solid rgba(255,255,255,0.06)' }}>
+        Walang laman — bumalik
+      </button>
+    </div>
+  );
+
+  return <ScannerView onAdd={onAdd} footer={footer} />;
+}
+
+/* ─── Wizard Step 3B: Manual ─── */
+function ManualStep({ cart, onAdd, onDone }: { cart: CartItem[]; onAdd: (p: typeof PRODUCTS[0]) => void; onDone: () => void }) {
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+  const cartTotal = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+
+  return (
+    <div className="flex flex-col h-full p-4 gap-3">
+      <h2 style={{ color: TEXT, fontSize: 20, fontWeight: 900 }}>Manual na Paghahanap</h2>
+      <ProductGrid cart={cart} onAdd={onAdd} />
+      {cartCount > 0 && (
+        <motion.button initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} onClick={onDone}
+          className="shrink-0 w-full flex items-center justify-between px-5 py-4 rounded-2xl transition-colors"
+          style={{ background: '#1800ad', boxShadow: '0 8px 28px rgba(24,0,173,0.45)', minHeight: 56 }}
+          onMouseEnter={e => (e.currentTarget as HTMLElement).style.background = '#150f9e'}
+          onMouseLeave={e => (e.currentTarget as HTMLElement).style.background = '#1800ad'}
+        >
+          <div className="flex items-center gap-3"><ShoppingCart size={20} color="white" /><span style={{ color: '#fff', fontWeight: 800, fontSize: 15 }}>Tingnan ang Cart ({cartCount})</span></div>
+          <span style={{ color: '#fff', fontWeight: 900, fontSize: 15 }}>{formatCurrency(cartTotal)}</span>
+        </motion.button>
+      )}
+    </div>
+  );
+}
+
+/* ─── Header (back + title + customer + online badge) ─── */
+function POSHeader({ title, subtitle, isOnline, onBack, children }: { title: string; subtitle: string; isOnline: boolean; onBack: () => void; children?: React.ReactNode }) {
+  return (
+    <div className="shrink-0 flex items-center gap-3 px-5 pt-5 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
+      <button onClick={onBack} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: CARD, border: '1px solid rgba(255,255,255,0.06)' }}>
+        <ArrowLeft size={17} color={TEXT} />
+      </button>
+      <div className="flex-1 min-w-0">
+        <div style={{ color: TEXT, fontSize: 15, fontWeight: 800 }}>{title}</div>
+        <div className="truncate" style={{ color: MUTED, fontSize: 11 }}>{subtitle}</div>
+      </div>
+      {children}
+      <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl" style={{ background: isOnline ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${isOnline ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
+        {isOnline ? <Wifi size={12} color="#10B981" /> : <WifiOff size={12} color="#F59E0B" />}
+        <span style={{ fontSize: 10, color: isOnline ? '#10B981' : '#F59E0B', fontWeight: 800 }}>
+          {isOnline ? 'Online' : 'Offline'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Mobile layout: step wizard ─── */
+function POSWizard({ customer, onSelectCustomer, cart, onAdd, onUpdateQty, onRemove, receipt, onProceed, onNewTransaction, onBack, isOnline }: {
+  customer: Customer | null; onSelectCustomer: (c: Customer | null) => void;
+  cart: CartItem[]; onAdd: (p: typeof PRODUCTS[0]) => void;
+  onUpdateQty: (id: string, delta: number) => void; onRemove: (id: string) => void;
+  receipt: Receipt | null; onProceed: (method: PayMethod, tendered: number, sukli: number) => void;
+  onNewTransaction: () => void; onBack: () => void; isOnline: boolean;
+}) {
   const [step, setStep] = useState<POSStep>('customer');
-  const [customer, setCustomer] = useState<Customer | null>(null);
-  const [cart, setCart] = useState<CartItem[]>([]);
-  const [receipt, setReceipt] = useState<Receipt | null>(null);
 
   const STEP_LABELS: Record<POSStep, string> = {
     customer: 'Customer', mode: 'Paraan ng Input', scanner: 'Barcode Scanner',
     manual: 'Manual na Paghahanap', cart: 'Cart & Payment', receipt: 'Receipt',
   };
 
-  const addToCart = (product: typeof PRODUCTS[0]) => {
-    setCart(prev => {
-      const existing = prev.find(i => i.product.id === product.id);
-      if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
-      return [...prev, { product, quantity: 1 }];
-    });
+  const handleProceed = (method: PayMethod, tendered: number, sukli: number) => {
+    onProceed(method, tendered, sukli);
+    setStep('receipt');
   };
 
-  const handleProceed = (method: PayMethod, tendered: number, sukli: number) => {
-    const total = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
-    const time = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
-    setReceipt({ id: `TXN-${Math.floor(Math.random() * 90000) + 10000}`, customer: customer ? customer.name : 'Walk-in Customer', items: [...cart], total, method, tendered, sukli, time });
-    setStep('receipt');
+  const handleNewTransaction = () => {
+    onNewTransaction();
+    setStep('customer');
   };
 
   const getBack = () => {
@@ -609,58 +666,160 @@ export function POSView({ onBack, isOnline }: { onBack: () => void; isOnline: bo
   const currentIdx = steps.indexOf(step);
 
   return (
-    <div className="h-full flex items-stretch justify-center" style={{ background: '#050505' }}>
-      <div className="h-full flex flex-col relative" style={{ background: BG, width: '100%', maxWidth: 420 }}>
-        {/* Header */}
-        <div className="shrink-0 flex items-center gap-3 px-5 pt-5 pb-3" style={{ borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-          <button onClick={getBack} className="w-9 h-9 rounded-xl flex items-center justify-center" style={{ background: CARD, border: '1px solid rgba(255,255,255,0.06)' }}>
-            <ArrowLeft size={17} color={TEXT} />
-          </button>
-          <div className="flex-1">
-            <div style={{ color: TEXT, fontSize: 15, fontWeight: 800 }}>{STEP_LABELS[step]}</div>
-            <div style={{ color: MUTED, fontSize: 11 }}>
-              {customer ? customer.name : 'Walk-in Customer'}
-              {cart.length > 0 && ` · ${cart.reduce((s, i) => s + i.quantity, 0)} items`}
-            </div>
-          </div>
-          <div className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl" style={{ background: isOnline ? 'rgba(16,185,129,0.08)' : 'rgba(245,158,11,0.08)', border: `1px solid ${isOnline ? 'rgba(16,185,129,0.2)' : 'rgba(245,158,11,0.2)'}` }}>
-            {isOnline ? <Wifi size={12} color="#10B981" /> : <WifiOff size={12} color="#F59E0B" />}
-            <span style={{ fontSize: 10, color: isOnline ? '#10B981' : '#F59E0B', fontWeight: 800 }}>
-              {isOnline ? 'Online' : 'Offline'}
-            </span>
-          </div>
-        </div>
+    <div className="h-full w-full flex flex-col relative" style={{ background: BG }}>
+      <POSHeader
+        title={STEP_LABELS[step]}
+        subtitle={`${customer ? customer.name : 'Walk-in Customer'}${cart.length > 0 ? ` · ${cart.reduce((s, i) => s + i.quantity, 0)} items` : ''}`}
+        isOnline={isOnline}
+        onBack={getBack}
+      />
 
-        {/* Progress bar */}
-        <div className="shrink-0 flex items-center gap-1 px-5 py-2.5">
-          {['customer', 'mode', 'scanner', 'cart', 'receipt'].map((s, i) => {
-            const thisIdx = steps.indexOf(s as POSStep);
-            return (
-              <div key={s} className="h-0.5 rounded-full flex-1" style={{ background: thisIdx <= currentIdx ? '#1800ad' : 'rgba(255,255,255,0.08)', transition: 'background 0.3s' }} />
-            );
-          })}
-        </div>
+      {/* Progress bar */}
+      <div className="shrink-0 flex items-center gap-1 px-5 py-2.5">
+        {['customer', 'mode', 'scanner', 'cart', 'receipt'].map(s => {
+          const thisIdx = steps.indexOf(s as POSStep);
+          return (
+            <div key={s} className="h-0.5 rounded-full flex-1" style={{ background: thisIdx <= currentIdx ? '#1800ad' : 'rgba(255,255,255,0.08)', transition: 'background 0.3s' }} />
+          );
+        })}
+      </div>
 
-        {/* Step content */}
-        <div className="flex-1 min-h-0 relative overflow-hidden">
-          <AnimatePresence mode="wait">
-            <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
-              transition={{ duration: 0.2 }} className="absolute inset-0 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
-              {step === 'customer' && <CustomerStep selected={customer} onSelect={setCustomer} onNext={() => setStep('mode')} />}
-              {step === 'mode' && <ModeStep onScan={() => setStep('scanner')} onManual={() => setStep('manual')} />}
-              {step === 'scanner' && <ScannerStep cart={cart} onAdd={addToCart} onDone={() => setStep('cart')} />}
-              {step === 'manual' && <ManualStep cart={cart} onAdd={addToCart} onDone={() => setStep('cart')} />}
-              {step === 'cart' && (
-                <CartStep cart={cart} customer={customer}
-                  onUpdateQty={(id, d) => setCart(prev => prev.map(i => i.product.id === id ? { ...i, quantity: Math.max(1, i.quantity + d) } : i))}
-                  onRemove={id => setCart(prev => prev.filter(i => i.product.id !== id))}
-                  onProceed={handleProceed} onBack={() => setStep('mode')} />
-              )}
-              {step === 'receipt' && receipt && <ReceiptStep receipt={receipt} onNew={() => { setStep('customer'); setCustomer(null); setCart([]); setReceipt(null); }} />}
-            </motion.div>
-          </AnimatePresence>
-        </div>
+      {/* Step content */}
+      <div className="flex-1 min-h-0 relative overflow-hidden">
+        <AnimatePresence mode="wait">
+          <motion.div key={step} initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.2 }} className="absolute inset-0 overflow-y-auto" style={{ scrollbarWidth: 'none' }}>
+            {step === 'customer' && <CustomerStep selected={customer} onSelect={onSelectCustomer} onNext={() => setStep('mode')} />}
+            {step === 'mode' && <ModeStep onScan={() => setStep('scanner')} onManual={() => setStep('manual')} />}
+            {step === 'scanner' && <ScannerStep cart={cart} onAdd={onAdd} onDone={() => setStep('cart')} />}
+            {step === 'manual' && <ManualStep cart={cart} onAdd={onAdd} onDone={() => setStep('cart')} />}
+            {step === 'cart' && (
+              <CartPanel cart={cart} customer={customer}
+                onUpdateQty={onUpdateQty} onRemove={onRemove}
+                onProceed={handleProceed} onBack={() => setStep('mode')} />
+            )}
+            {step === 'receipt' && receipt && <ReceiptStep receipt={receipt} onNew={handleNewTransaction} />}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </div>
   );
+}
+
+/* Wizard receipt step wraps ReceiptCard to fill the step area. */
+function ReceiptStep({ receipt, onNew }: { receipt: Receipt; onNew: () => void }) {
+  return <ReceiptCard receipt={receipt} onNew={onNew} />;
+}
+
+/* ─── Desktop layout: split-screen cashier ─── */
+function POSDesktop({ customer, onSelectCustomer, cart, onAdd, onUpdateQty, onRemove, receipt, onProceed, onNewTransaction, onBack, isOnline }: {
+  customer: Customer | null; onSelectCustomer: (c: Customer | null) => void;
+  cart: CartItem[]; onAdd: (p: typeof PRODUCTS[0]) => void;
+  onUpdateQty: (id: string, delta: number) => void; onRemove: (id: string) => void;
+  receipt: Receipt | null; onProceed: (method: PayMethod, tendered: number, sukli: number) => void;
+  onNewTransaction: () => void; onBack: () => void; isOnline: boolean;
+}) {
+  const [entryTab, setEntryTab] = useState<EntryTab>('manual');
+  const cartCount = cart.reduce((s, i) => s + i.quantity, 0);
+
+  return (
+    <div className="h-full w-full flex flex-col relative" style={{ background: BG }}>
+      <POSHeader
+        title="POS Terminal"
+        subtitle={`${customer ? customer.name : 'Walk-in Customer'}${cartCount > 0 ? ` · ${cartCount} items` : ''}`}
+        isOnline={isOnline}
+        onBack={onBack}
+      />
+
+      <div className="flex-1 min-h-0 flex">
+        {/* Left: product entry */}
+        <div className="flex-1 min-w-0 flex flex-col p-5 gap-4" style={{ borderRight: '1px solid rgba(255,255,255,0.06)' }}>
+          <CustomerSelector selected={customer} onSelect={onSelectCustomer} />
+
+          {/* Scan | Manual toggle */}
+          <div className="flex p-1 rounded-2xl gap-1 shrink-0" style={{ background: CARD, border: '1px solid rgba(255,255,255,0.06)' }}>
+            {([
+              { t: 'manual' as EntryTab, label: 'Manual', icon: <Keyboard size={15} /> },
+              { t: 'scan' as EntryTab, label: 'Scan', icon: <Camera size={15} /> },
+            ]).map(({ t, label, icon }) => (
+              <button key={t} onClick={() => setEntryTab(t)}
+                className="flex-1 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-colors"
+                style={{ background: entryTab === t ? '#1800ad' : 'transparent', color: entryTab === t ? '#fff' : MUTED, fontSize: 13, fontWeight: 800 }}>
+                {icon}{label}
+              </button>
+            ))}
+          </div>
+
+          {/* Entry area */}
+          <div className="flex-1 min-h-0 flex flex-col gap-3">
+            {entryTab === 'manual'
+              ? <ProductGrid cart={cart} onAdd={onAdd} gridClassName="grid-cols-2 lg:grid-cols-3 xl:grid-cols-4" />
+              : <ScannerView onAdd={onAdd} />}
+          </div>
+        </div>
+
+        {/* Right: live cart + payment */}
+        <div className="shrink-0 flex flex-col h-full" style={{ width: 380, background: '#050505' }}>
+          <CartPanel cart={cart} customer={customer} onUpdateQty={onUpdateQty} onRemove={onRemove} onProceed={onProceed} />
+        </div>
+      </div>
+
+      {/* Receipt modal overlay */}
+      <AnimatePresence>
+        {receipt && (
+          <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            className="absolute inset-0 z-50 flex items-center justify-center p-6"
+            style={{ background: 'rgba(0,0,0,0.82)' }}>
+            <motion.div initial={{ scale: 0.95, y: 12 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="rounded-3xl overflow-hidden"
+              style={{ width: '100%', maxWidth: 420, height: 'min(660px, 88vh)', background: BG, border: '1px solid rgba(255,255,255,0.08)', boxShadow: '0 24px 80px rgba(0,0,0,0.9)' }}>
+              <ReceiptCard receipt={receipt} onNew={onNewTransaction} />
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
+/* ─── Main POS View (orchestrator) ─── */
+export function POSView({ onBack, isOnline }: { onBack: () => void; isOnline: boolean }) {
+  const isMobile = useIsMobile();
+  const [customer, setCustomer] = useState<Customer | null>(null);
+  const [cart, setCart] = useState<CartItem[]>([]);
+  const [receipt, setReceipt] = useState<Receipt | null>(null);
+
+  const addToCart = (product: typeof PRODUCTS[0]) => {
+    setCart(prev => {
+      const existing = prev.find(i => i.product.id === product.id);
+      if (existing) return prev.map(i => i.product.id === product.id ? { ...i, quantity: i.quantity + 1 } : i);
+      return [...prev, { product, quantity: 1 }];
+    });
+  };
+
+  const updateQty = (id: string, delta: number) =>
+    setCart(prev => prev.map(i => i.product.id === id ? { ...i, quantity: Math.max(1, i.quantity + delta) } : i));
+
+  const removeItem = (id: string) => setCart(prev => prev.filter(i => i.product.id !== id));
+
+  const handleProceed = (method: PayMethod, tendered: number, sukli: number) => {
+    const total = cart.reduce((s, i) => s + i.product.price * i.quantity, 0);
+    const time = new Date().toLocaleTimeString('en-PH', { hour: '2-digit', minute: '2-digit' });
+    setReceipt({ id: `TXN-${Math.floor(Math.random() * 90000) + 10000}`, customer: customer ? customer.name : 'Walk-in Customer', items: [...cart], total, method, tendered, sukli, time });
+  };
+
+  const resetTransaction = () => {
+    setCustomer(null);
+    setCart([]);
+    setReceipt(null);
+  };
+
+  const layoutProps = {
+    customer, onSelectCustomer: setCustomer,
+    cart, onAdd: addToCart, onUpdateQty: updateQty, onRemove: removeItem,
+    receipt, onProceed: handleProceed, onNewTransaction: resetTransaction,
+    onBack, isOnline,
+  };
+
+  return isMobile ? <POSWizard {...layoutProps} /> : <POSDesktop {...layoutProps} />;
 }
